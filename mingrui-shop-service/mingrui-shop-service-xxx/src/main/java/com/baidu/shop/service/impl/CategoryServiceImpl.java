@@ -25,12 +25,25 @@ import java.util.List;
 public class CategoryServiceImpl extends BaseApiService implements CategoryService {
     @Autowired
     private CategoryMapper categoryMapper;
+
+
     @Transactional
     @Override
     public Result<JsonObject> updateCategory(CategoryEntity entity) {
         categoryMapper.updateByPrimaryKeySelective(entity);
         return this.setResultSuccess();
     }
+    @Transactional
+    @Override
+    public Result<JsonObject> saveCategory(CategoryEntity entity) {
+        CategoryEntity saveCategoryEntity = new CategoryEntity();
+        saveCategoryEntity.setId(entity.getParentId());
+        saveCategoryEntity.setParentId(0);
+        categoryMapper.updateByPrimaryKeySelective(saveCategoryEntity);
+        categoryMapper.insertSelective(entity);
+        return this.setResultSuccess();
+    }
+
     @Override
     public Result<List<CategoryEntity>> getCategoryByPid(Integer pid) {
         CategoryEntity categoryEntity = new CategoryEntity();
