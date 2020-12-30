@@ -25,7 +25,11 @@ import java.util.List;
 public class CategoryServiceImpl extends BaseApiService implements CategoryService {
     @Autowired
     private CategoryMapper categoryMapper;
-
+    @Override
+    public Result<List<CategoryEntity>> getByBrand(Integer brandId) {
+        List<CategoryEntity> categoryByBrandId = categoryMapper.getCategoryByBrandId(brandId);
+        return this.setResultSuccess(categoryByBrandId);
+    }
 
     @Transactional
     @Override
