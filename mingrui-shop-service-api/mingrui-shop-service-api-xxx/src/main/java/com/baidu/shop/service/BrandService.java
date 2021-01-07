@@ -7,7 +7,10 @@ import com.baidu.shop.entity.BrandEntity;
 import com.github.pagehelper.PageInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.models.auth.In;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Api(tags="品牌接口 ")
 public interface BrandService {
@@ -25,5 +28,9 @@ public interface BrandService {
     @DeleteMapping(value="brand/delete")
     @ApiOperation(value="删除品牌")
     Result<JSONObject>deleteBrand(Integer id);
+
+    @ApiOperation(value="通过分类id查询品牌")
+    @GetMapping(value="brand/getBrandInfoCategoryById")
+    Result<List<BrandEntity>>getBrandInfoCategoryById(Integer cid);
 
 }

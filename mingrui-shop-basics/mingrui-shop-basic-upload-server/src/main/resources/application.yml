@@ -20,6 +20,6 @@ mingrui:
   upload:
     path:
       windows: D:\\images
-      linux: /shenyaqi/images
+      linux: /lss/images
     img:
       host: http://81.70.177.181/

@@ -40,6 +40,11 @@ public class BrandServiceImpl extends BaseApiService implements BrandService {
     @Autowired
     private CategoryBrandMapper categoryBrandMapper;
 
+    @Override
+    public Result<List<BrandEntity>> getBrandInfoCategoryById(Integer cid) {
+        List<BrandEntity> list = brandMapper.getBrandInfoByCategoryId(cid);
+        return this.setResultSuccess(list);
+    }
 
     @Override
     public Result<PageInfo<BrandEntity>> getBrandInfo(BrandDTO brandDTO) {
