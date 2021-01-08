@@ -92,7 +92,7 @@ public class CategoryServiceImpl extends BaseApiService implements CategoryServi
         //如果size<=1,如果当前节点被删除的话,当前节点父节点下就没有其他节点,将父节点的状态改为0
         if(categoryEntities.size()<=1){
             CategoryEntity updateCategoryEntity = new CategoryEntity();
-            updateCategoryEntity.setParentId(0);
+            updateCategoryEntity.setIsParent(0);
             updateCategoryEntity.setId(categoryEntity.getParentId());
 
             categoryMapper.updateByPrimaryKeySelective(updateCategoryEntity);

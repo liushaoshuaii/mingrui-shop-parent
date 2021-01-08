@@ -22,12 +22,16 @@ public class SpecParamDTO {
     @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
     private Integer id;
     @ApiModelProperty(value="分类id",example = "1")
+    @NotNull(message = "商品分类id不能为空",groups = {MingruiOperation.Update.class})
     private Integer cid;
     @ApiModelProperty(value="规格组id",example = "1")
+    @NotNull(message = "品牌id不能为空",groups = {MingruiOperation.Update.class})
     private Integer groupId;
     @ApiModelProperty(value="规格参数名称")
+    @NotNull(message = "规格参数名称不能为空",groups = {MingruiOperation.Add.class})
     private String name;
-    @ApiModelProperty(value="是否是数字类型参数",example = "0")
+    @ApiModelProperty(value="是否是数字类型参数 1->true或0->false",example = "0")
+    @NotNull(message = "是否是数值类型的参数 ",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
     private Boolean numeric;
     @ApiModelProperty(value="数字类型参数的单位，非数字类型可以为空")
     private String unit;
