@@ -1,0 +1,3559 @@
+# 环境搭建
+
+## 系统架构
+
+后台管理系统+前台门户系统
+
+分布式结构+微服务
+
+## 项目结构
+
+- mingrui-shop-parent
+  - mingrui-shop-basics
+    - mingrui-shop-basic-eurka-server
+    - mingrui-shop-basic-upload-server
+    - mingrui-shop-basic-zuul-server
+  - mingrui-shop-commons
+    - mingrui-shop-commom-core
+  - mingrui-shop-services
+    - mingrui-shop-service-xxx
+  - mingrui-shop-services-api
+    - mingrui-shop-service-api-xxx
+
+## 项目搭建
+
+### 技术选型
+
+#### 前端:
+
+html/css/JavaScript
+
+jQuery
+
+#### 后端:
+
+Mybatis/Spring/springMVC
+
+spring Boot
+
+spring Cloud
+
+#### 开发环境
+
+jdk1.8
+
+#### 域名
+
+一级域名:www.mrshop.com
+
+二级域名:manage.mrshop.com;api.mrshop.com
+
+## 创建项目
+
+### 创建父工程 
+
+mingrui-shop-parent,删除src文件夹,配置pom文件引入依赖
+
+```java
+<properties> <!--项目构建编码-->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF- 8</project.reporting.outputEncoding> <!--声明JDK版本-->
+    <java.version>1.8</java.version> <!--spring cloud 版本.注意此版本是建立在boot2.2.2版本上的-->
+    <mr.spring.cloud.version>Hoxton.SR1</mr.spring.cloud.version>
+</properties>
+
+<!--boot 版本-->
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.3.1.RELEASE</version> <!--始终从仓库中获取，不从本地路径获取-->
+    <relativePath/>
+</parent>
+<dependencies>
+    <!-- 集成commons工具类 -->
+    <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <!-- 集成lombok 框架 -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+    </dependency> 
+    <!--junit测试-->
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+    </dependency> 
+    <!-- SpringBoot整合eureka客户端 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency> 
+    <!--boot 测试模块-->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+
+<!-- 项目依赖,子级模块可以继承依赖-->
+<dependencyManagement>
+    <dependencies> <!--cloud 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>${mr.spring.cloud.version}</version>
+            <type>pom</type> <!--解决maven单继承的问题-->
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+<!-- 注意： 这里必须要添加， 否者各种依赖有问题 -->
+<repositories>
+    <repository>
+        <id>spring-milestones</id>
+        <name>Spring Milestones</name>
+        <url>https://repo.spring.io/libs-milestone</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>
+</repositories>
+```
+
+### 创建基础服务父工程 
+
+mingrui-shop-basics,删除src文件,将pom文件里的打包方式设置为pom,暂时不引入依赖
+
+### 创建公共工程
+
+mingrui-shop-commoms,删除src文件夹,将pom文件里的打包方式设置为pom,暂时不引入依赖
+
+### 创建服务实现工程
+
+mingrui-shop-service,删除src文件夹,配置pom文件引入依赖
+
+```java
+<!-- SpringBoot-整合Web组件 -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency> 
+<!-- springcloud feign组件 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+### 创建服务接口工程
+
+mingrui-shop-service-api,删除src文件夹,配置pom文件引入依赖
+
+```
+<!-- SpringBoot-整合Web组件 -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+### 创建eureka服务
+
+在mingrui-shop-basics下创建mingrui-shop-basic-eureka-server,配置pom文件引入依赖
+
+```java
+<!--eureka 服务依赖-->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+    </dependency>
+```
+
+配置文件application.yml
+
+```
+server:
+  port: 8761
+spring:
+  application:
+    name: eureka-server
+eureka:
+  client:
+    # eureka服务url,值为map集合默认key为defaultZone
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka
+    # 当前服务是否同时注册
+    register-with-eureka: false
+    # 去注册中心获取其他服务的地址
+    fetch-registry: false
+  instance:
+    hostname: localhost
+    # 定义服务续约任务（心跳）的调用间隔，单位：秒 默认30
+    lease-renewal-interval-in-seconds: 1
+    # 定义服务失效的时间，单位：秒 默认90
+    lease-expiration-duration-in-seconds: 2
+  server:
+    # 测试时关闭自我保护机制，保证不可用服务及时踢出
+    enable-self-preservation: false
+```
+
+启动类RunEurekaServerApplication
+
+```java
+@SpringBootApplication
+@EnableEurekaServer
+public class RunEurekaServerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RunEurekaServerApplication.class);
+    }
+}
+```
+
+
+
+# 分类管理
+
+## 查询
+
+#### 在mingrui-shop-service-api-xxx中的com.baidu.shop.entity包下新建实体类 CategoryEntity	sS
+
+```java
+package com.baidu.shop.entity;
+import com.baidu.shop.group.MingruiOperation;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName CategoryEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/22
+ * @Version V1.0
+ **/
+@ApiModel(value="分类实体类")
+@Data
+@Table(name="tb_category")
+public class CategoryEntity {
+    @Id
+    @ApiModelProperty(value="类目id",example = "1")
+    @NotNull(message = "id不能为空",groups = {MingruiOperation.Update.class})
+    private Integer id;
+
+    @ApiModelProperty(value = "类目名称")
+    @NotEmpty(message = "分类名称不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String name;
+
+    @ApiModelProperty(value = "父类目id,顶级类目填0",example = "1")
+    @NotNull(message = "父类id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer parentId;
+
+    @ApiModelProperty(value = "是否为父节点，0为否，1为是",example = "1")
+    @NotNull(message = "节点状态不能为空",groups = {MingruiOperation.Add.class})
+    private Integer isParent;
+
+    @ApiModelProperty(value="排序指数，越小越靠前",example = "1")
+    @NotNull(message = "排序指数不能为空",groups = {MingruiOperation.Add.class})
+    private Integer sort;
+}
+
+```
+
+#### 	在service下定义商品分类接口CategoryService
+
+```java
+package com.baidu.shop.service;
+
+import com.baidu.shop.base.Result;
+import com.baidu.shop.entity.CategoryEntity;
+import com.baidu.shop.group.MingruiOperation;
+import com.google.gson.JsonObject;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Api(tags = "商品分类接口")
+public interface CategoryService {
+    @ApiOperation(value="通过查询商品分类")
+    @GetMapping(value = "category/list")
+    Result<List<CategoryEntity>> getCategoryByPid(Integer pid);
+
+}
+
+```
+
+#### 在mingrui-shop-service-xxx中的shop.service.impl下新建实体类CategoryServiceImpl
+
+##### CategoryServiceImpl实体类需要实现CategoryService接口,同时还需要继承工具类BaseApiService,重写接口中的查询方法
+
+```java
+ @Override
+    public Result<List<CategoryEntity>> getCategoryByPid(Integer pid) {
+        CategoryEntity categoryEntity = new CategoryEntity();
+        categoryEntity.setParentId(pid);
+        List<CategoryEntity>list = categoryMapper.select(categoryEntity);
+        return this.setResultSuccess(list);
+    }
+```
+
+#### 在mingrui-shop-service-xxx中的shop.mapper下新建接口CategoryMapper
+
+```java
+package com.baidu.shop.mapper;
+
+
+import com.baidu.shop.entity.CategoryEntity;
+import org.apache.ibatis.annotations.Select;
+import tk.mybatis.mapper.common.Mapper;
+
+import java.util.List;
+
+public interface CategoryMapper extends Mapper<CategoryEntity> {
+    //该SQL用来通过品牌id查询绑定分类属性
+    @Select(value = "select id,name from tb_category where id in (select category_id from tb_category_brand where brand_id=#{brandId})")
+    List<CategoryEntity> getCategoryByBrandId(Integer brandId);
+}
+
+```
+
+
+
+## 新增
+
+#### 在CategoryService接口中添加新增方法
+
+```java
+@ApiOperation(value = "新增")
+    @PostMapping(value="category/save")
+    Result<JsonObject>saveCategory(@Validated({MingruiOperation.Add.class})@RequestBody  CategoryEntity entity);
+```
+
+#### 直接在CategoryService中重写新增方法
+
+```java
+@Transactional
+    @Override
+    public Result<JsonObject> saveCategory(CategoryEntity categoryEntity) {
+        CategoryEntity saveCategoryEntity = new CategoryEntity();
+        saveCategoryEntity.setId(categoryEntity.getParentId());
+        saveCategoryEntity.setIsParent(1);
+        categoryMapper.updateByPrimaryKeySelective(saveCategoryEntity);
+        categoryMapper.insertSelective(categoryEntity);
+        return this.setResultSuccess();
+    }
+Category查询出来是树状图的,有父子叶结构,要在某个节点下添加一个子节点,那么改节点必须是父节点状态,如果在子节点下添加新的节点,那么就将当前子节点的状态改为父节点
+
+```
+
+## 修改
+
+#### 修改没有太多需要注意的地方 直接在CategoryService接口中添加修改方法
+
+```java
+@ApiOperation(value="修改分类")
+    @PutMapping(value="category/update")
+    Result<JsonObject>updateCategory(@Validated({MingruiOperation.Update.class}) @RequestBody  CategoryEntity entity);
+```
+
+#### 在CategoryService中重写修改方法
+
+```java
+@Transactional
+    @Override
+    public Result<JsonObject> updateCategory(CategoryEntity entity) {
+        categoryMapper.updateByPrimaryKeySelective(entity);
+        return this.setResultSuccess();
+    }
+```
+
+## 删除
+
+#### CategoryService接口中添加删除方法
+
+```java
+@ApiOperation(value="通过id删除分类")
+    @DeleteMapping(value="category/del")
+    Result<JsonObject>delCategory(Integer id);
+```
+
+#### 在mingrui-shop-common-core下新建工具类ObjectUtil
+
+```java
+package com.baidu.shop.utils;
+
+/**
+ * @ClassName ObjectUtil
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/23
+ * @Version V1.0
+ **/
+public class ObjectUtil {
+    public static  boolean isNull(Object obj){
+        return obj ==null;
+    }
+    public static  boolean isNotNull(Object obj){
+        return obj !=null;
+    }
+}
+
+```
+
+#### 在CategoryService中重写修改方法
+
+```java
+@Transactional
+    @Override
+    public Result<JsonObject> delCategory(Integer id) {
+        //检验id是否合法
+        if(ObjectUtil.isNull(id) || id<=0) return this.setResultError("id不合法");
+        CategoryEntity categoryEntity = categoryMapper.selectByPrimaryKey(id);
+        //判断id是否存在
+        if(ObjectUtil.isNull(categoryEntity))return this.setResultError("数据不存在");
+        //判断当前节点是否为父节点(isParent为1)
+        if(categoryEntity.getIsParent()==1)return this.setResultError("当前节点为父节点");
+		//品牌管理中绑定有分类标签,在删除标签需要判断该分类是否绑定在品牌中
+        Example example1 = new Example(CategoryBrandEntity.class);
+        example1.createCriteria().andEqualTo("categoryId",id);
+        List<CategoryBrandEntity> categoryBrandEntities = categoryBrandMapper.selectByExample(example1);
+        if(categoryBrandEntities.size() != 0){
+            return this.setResultError("该属性已被品牌绑定不能删除");
+        }
+
+
+        //通过当前节点的父节点id查询当前节点的父节点下是否还有其他子节点;
+        Example example = new Example(CategoryEntity.class);
+        //前边格式固定 拼接sql语句   where 1 = 1; select form 表明 where 1=1 and parentId=?
+        example.createCriteria().andEqualTo("parentId", categoryEntity.getParentId());
+        //将拼接后的sql返回到list集合内
+        List<CategoryEntity> categoryEntities = categoryMapper.selectByExample(example);
+
+
+
+        //如果size<=1,如果当前节点被删除的话,当前节点父节点下就没有其他节点,将父节点的状态改为0
+        if(categoryEntities.size()<=1){
+            CategoryEntity updateCategoryEntity = new CategoryEntity();
+            updateCategoryEntity.setParentId(0);
+            updateCategoryEntity.setId(categoryEntity.getParentId());
+
+            categoryMapper.updateByPrimaryKeySelective(updateCategoryEntity);
+
+        }
+        //通过id删除节点
+        categoryMapper.deleteByPrimaryKey(id);
+        return this.setResultSuccess();
+    }
+```
+
+
+
+# 品牌管理
+
+## 查询
+
+### 前台
+
+#### 在item中新建Mrbrand.vue
+
+```vue
+	<template>
+  <v-card>
+    <v-card-title>
+      <v-btn color="info">新增</v-btn>
+      <!-- 调按钮和输入框之间的间距 -->
+      <v-spacer />
+      <!--
+            append-icon : 图标
+            label : input默认值
+        -->
+      <v-text-field
+        append-icon="search"
+        label="品牌名称"
+        @keyup.enter="getTableData()"
+        v-model="search"
+      ></v-text-field>
+    </v-card-title>
+    <!-- 表格组件 -->
+        <!-- :pagination.sync="pagination" 绑定分页属性,并将分页参数绑定给data.pagination
+        -->
+        <!-- :total-items="total" 设置总条数,获取data.total中的值 -->
+    <v-data-table
+      :headers="headers"
+      :items="desserts"
+      :pagination.sync="pagination"
+      :total-items="total"
+      class="elevation-1"
+    >
+      <template slot="items" slot-scope="props">
+        <td class="text-xs-center">{{ props.item.id }}</td>
+        <td class="text-xs-center">{{ props.item.name }}</td>
+        <td class="text-xs-center">
+          <!-- src 是html标签的属性 :src="vue的属性" -->
+          <img :src="props.item.image" />
+        </td>
+        <td class="text-xs-center">{{ props.item.letter }}</td>
+      </template>
+    </v-data-table>
+  </v-card>
+</template>
+<script>
+export default {
+  name: "MrBrand",//组件的名称
+  data() {
+    return {
+      pagination: {},//分页参数信息
+      total: 0,//总条数,初始值为0
+      search: "",
+      headers: [
+        {
+          text: "id",
+          align: "center",
+          value: "id",
+        },
+        {
+          text: "品牌名称",
+          align: "center",
+          value: "name",
+        },
+        {
+          text: "品牌logo",
+          align: "center",
+          value: "image",
+        },
+        {
+          text: "首字母",
+          align: "center",
+          value: "letter",
+        },
+      ],
+      desserts: [],//数据
+    };
+  },
+    //组件加载完毕后执行的方法
+  mounted() {
+    this.getTableData();//查询方法,刷新列表
+  },
+  methods: {
+    getTableData() {
+      this.$http
+        .get("/brand/list", {
+          //查询传递的参数
+          params: {
+            page: this.pagination.page,
+            rows: this.pagination.rowsPerPage,
+            sort: this.pagination.sortBy,
+            order: this.pagination.descending,
+            name: this.search
+          },
+        })
+        .then((resp) => {
+          //给数据属性赋值
+          this.desserts = resp.data.data.list;
+          //给总条数赋值
+          this.total = resp.data.data.total;
+        })
+        .catch((error) => console.log(error));
+    }
+  },
+  watch: {//监控属性
+    pagination() {//监控分页属性的变化
+      this.getTableData();//刷新列表
+    }
+  }
+};
+</script>
+```
+
+##### 更改index.js 27行
+
+```js
+route("/item/brand",'/item/MrBrand',"MrBrand"),
+```
+
+### 后台
+
+#### 在common-core 中的pom.xml添加依赖
+
+```xml
+    <!--帮助开发人员快速生成API文档-->
+    <dependency>
+        <groupId>io.springfox</groupId>
+        <artifactId>springfox-swagger2</artifactId>
+        <version>2.9.2</version>
+    </dependency>
+
+```
+
+#### 在base包下新建BaseDTO
+
+```java
+package com.baidu.shop.base;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+/**
+ * @ClassName BaseBTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/25
+ * @Version V1.0
+ **/
+@Data
+@ApiModel(value = "用于传输数据.需要其他bto继承此类")
+public class BaseDTO {
+    @ApiModelProperty(value="当前页",example = "1")
+    private Integer page;
+    @ApiModelProperty(value="每页显示条数",example = "5")
+    private Integer rows;
+    @ApiModelProperty(value="排序字段")
+    private String sort;
+    @ApiModelProperty(value="是否升序")
+    private String order;
+    public String  getOrderBy(){
+        return sort+" "+(Boolean.valueOf(order)?"desc":"asc");//将排序转为boolean类型   true为倒序 false为正序
+    }
+}
+
+```
+
+#### 在mingrui-shop-server-api的pom.xml添加分页工具依赖
+
+```xml
+<!--分页工具-->
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper-spring-boot-starter</artifactId>
+            <version>1.2.10</version>
+        </dependency>
+```
+
+#### 在shop包下新建dto包新建BrandDTO类 用来继承baseDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.base.BaseDTO;
+import com.baidu.shop.group.MingruiOperation;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import sun.plugin2.message.Message;
+
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName BrandDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/25
+ * @Version V1.0
+ **/
+@Data
+@ApiModel(value="品牌DTO")
+public class BrandDTO extends BaseDTO {
+    @ApiModelProperty(value="品牌主键",example = "1")
+    @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
+    private Integer id;
+    @ApiModelProperty(value = "品牌名字")
+    @NotNull(message = "品牌名字不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String name;
+    @ApiModelProperty(value="品牌图片")
+    private String image;
+    @ApiModelProperty(value="品牌首字母")
+    private Character letter;
+}
+
+```
+
+#### 在shop-entity包下新建实体类 BrandEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * @ClassName BrandEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/25
+ * @Version V1.0
+ **/
+@Data
+@Table(name = "tb_brand")
+public class BrandEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    private String name;
+
+    private String image;
+
+    private Character letter;
+}
+
+```
+
+#### 在shop-service接口中新建接口BrandService
+
+```java
+package com.baidu.shop.service;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.BrandDTO;
+import com.baidu.shop.entity.BrandEntity;
+import com.github.pagehelper.PageInfo;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.*;
+
+@Api(tags="品牌接口 ")
+public interface BrandService {
+    @GetMapping(value="brand/list")
+    @ApiOperation(value = "查询品牌列表")
+    Result<PageInfo<BrandEntity>>getBrandInfo(BrandDTO brandDTO);
+
+}
+
+```
+
+#### 在mingrui-shop-server-xxx下的shop-mapper添加BrandMapper接口
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.BrandEntity;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface BrandMapper extends Mapper<BrandEntity> {
+}
+
+```
+
+#### 在shop-service.impl包下新建实现类BrandServiceImpl
+
+```java
+package com.baidu.shop.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baidu.shop.base.BaseApiService;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.BrandDTO;
+import com.baidu.shop.entity.BrandEntity;
+import com.baidu.shop.entity.CategoryBrandEntity;
+import com.baidu.shop.mapper.BrandMapper;
+import com.baidu.shop.mapper.CategoryBrandMapper;
+import com.baidu.shop.service.BrandService;
+import com.baidu.shop.utils.BaiduBeanUtil;
+import com.baidu.shop.utils.ObjectUtil;
+import com.baidu.shop.utils.PinyinUtil;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RestController;
+import tk.mybatis.mapper.entity.Example;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * @ClassName BrandServiceImpl
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/25
+ * @Version V1.0
+ **/
+@RestController
+public class BrandServiceImpl extends BaseApiService implements BrandService {
+
+    @Autowired
+    private BrandMapper brandMapper;
+
+    @Override
+    public Result<PageInfo<BrandEntity>> getBrandInfo(BrandDTO brandDTO) {
+        PageHelper.startPage(brandDTO.getPage(),brandDTO.getRows());//分页
+		//排序字不为空的时候进行排序
+        if(!StringUtils.isEmpty(brandDTO.getSort())) PageHelper.orderBy(brandDTO.getOrderBy());
+
+        BrandEntity brandEntity = BaiduBeanUtil.copyProperties(brandDTO,BrandEntity.class);
+
+        Example example = new Example(BrandEntity.class);
+        //品牌名字不为空的时候进行条件查询  
+        if (ObjectUtil.isNotNull(brandEntity.getName())){
+            //模糊匹配
+            example.createCriteria().andLike("name","%"+brandEntity.getName()+"%");
+        }
+
+		//查询结果返回到一个List集合中
+        List<BrandEntity>brandEntities=brandMapper.selectByExample(example);
+
+        PageInfo<BrandEntity>pageInfo = new PageInfo<>(brandEntities);
+
+        return this.setResultSuccess(pageInfo);
+    }
+}
+
+```
+
+
+
+## 新增
+
+### 前台
+
+#### 新建MrBrandForm.vue
+
+```vue
+<template>
+  <div>
+    <v-card-text>
+      <v-form v-model="valid" ref="form">
+        <v-text-field
+          v-model="brand.name"
+          label="品牌名称"
+          :rules="nameRules"
+          required
+        ></v-text-field>
+		//查询分类信息
+        <v-cascader
+          url="/category/list"
+          required
+          v-model="brand.categories"
+          multiple
+          label="商品分类"
+        />
+
+        <v-layout row>
+          <v-flex xs3>
+            <span style="font-size: 16px; color: #444">品牌LOGO：</span>
+          </v-flex>
+          <v-flex>
+            <v-upload
+              v-model="brand.image"
+              url="/upload"
+              :multiple="false"
+              :pic-width="250"
+              :pic-height="90"
+            />
+          </v-flex>
+        </v-layout>
+      </v-form>
+    </v-card-text>
+
+    <v-divider></v-divider>
+
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn small @click="cancel()">取消</v-btn>
+      <v-btn small color="primary" @click="submitForm()">确认</v-btn>
+    </v-card-actions>
+  </div>
+</template>
+<script>
+export default {
+  name: "MrBrandForm",
+  props: {
+    dialog: Boolean,//模态框状态设置为boolean类型
+  },
+  watch: {
+    dialog(val) {
+      if (val) this.$refs.form.reset();
+    },
+  },
+  data() {
+    //在js中 null == false , '' == false , undefined == false , 0 == false
+    return {
+      valid: true,
+      nameRules: [
+        (v) => !!v || "品牌名称不能为空",
+        (v) => (v && v.length <= 10) || "品牌名称最多10个长度",
+      ],
+      brand: {
+        name: "",
+        image:'',
+        categories: [],
+      },
+    };
+  },
+  methods: {
+    cancel() {
+      this.$emit("closeDialog");
+    },
+    submitForm() {
+      if (!this.$refs.form.validate()) {
+        return;
+      }
+      let formData = this.brand;
+      let categoryIdArr = this.brand.categories.map((category) => category.id);
+      formData.categories = categoryIdArr.join();
+
+      this.$http
+        .post("/brand/save", formData)
+        .then((resp) => {
+          if (resp.data.code != 200) {
+            return;
+          }
+          //关闭模态框
+          this.cancel();
+          //刷新表单
+        })
+        .catch((error) => console.log(error));
+    },
+  },
+};
+</script>
+```
+
+#### 在MrBrand中添加新增属性
+
+```vue
+<template>
+  <v-card>
+    <v-card-title>
+      <v-btn color="info" @click="dialog = true">新增</v-btn>//点击新增按钮打开模态框
+
+      <div class="text-xs-center">
+    <v-dialog
+      v-model="dialog"
+      width="500"
+    >
+      <v-card>
+        <v-card-title
+          class="headline grey lighten-2"
+          primary-title
+        >
+          品牌新增
+        </v-card-title>
+
+        <mr-brand-form @closeDialog="dialog = false" :dialog="dialog"/>
+
+      </v-card>
+    </v-dialog>
+  </div>
+
+      <!-- 调按钮和输入框之间的间距 -->
+      <v-spacer />
+
+      <!--
+            append-icon : 图标
+            label : input默认值
+        -->
+      <v-text-field
+        append-icon="search"
+        label="品牌名称"
+        @keyup.enter="getTableData()"
+        v-model="search"
+      ></v-text-field>
+    </v-card-title>
+    <!-- 表格组件 -->
+    <v-data-table
+      :headers="headers"
+      :items="desserts"
+      :pagination.sync="pagination"
+      :total-items="total"
+      class="elevation-1"
+    >
+      <template slot="items" slot-scope="props">
+        <td class="text-xs-center">{{ props.item.id }}</td>
+        <td class="text-xs-center">{{ props.item.name }}</td>
+        <td class="text-xs-center">
+          <!-- src 是html标签的属性 :src="vue的属性" -->
+          <img :src="props.item.image" />
+        </td>
+        <td class="text-xs-center">{{ props.item.letter }}</td>
+      </template>
+    </v-data-table>
+  </v-card>
+</template>
+<script>
+import MrBrandForm from './MrBrandForm';
+export default {
+  name: "MrBrand",
+  components:{
+    MrBrandForm
+  },
+  data() {
+    return {
+      pagination: {},
+      dialog: false,
+      total: 0,
+      search: "",
+      headers: [
+        {
+          text: "id",
+          align: "center",
+          value: "id",
+        },
+        {
+          text: "品牌名称",
+          align: "center",
+          value: "name",
+        },
+        {
+          text: "品牌logo",
+          align: "center",
+          value: "image",
+        },
+        {
+          text: "首字母",
+          align: "center",
+          value: "letter",
+        },
+      ],
+      desserts: [],
+    };
+  },
+  mounted() {
+    this.getTableData();
+  },
+  methods: {
+    getTableData() {
+
+      this.$http
+        .get("/brand/list", {
+          params: {
+            page: this.pagination.page,
+            rows: this.pagination.rowsPerPage,
+            sort: this.pagination.sortBy,
+            order: this.pagination.descending,
+            name: this.search
+          },
+        })
+        .then((resp) => {
+          this.desserts = resp.data.data.list;
+          this.total = resp.data.data.total;
+        })
+        .catch((error) => console.log(error));
+    }
+  },
+  watch: {
+    pagination() {
+      this.getTableData();
+    }
+  }
+};
+</script>
+```
+
+### 后台
+
+#### 在common-core中的utils包下新建工具类BaiduBeanUtil
+
+```java
+package com.baidu.shop.utils;
+
+import org.springframework.beans.BeanUtils;
+
+/**
+ * @ClassName BaiduBeanUtil
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/25
+ * @Version V1.0
+ **/
+public class BaiduBeanUtil<T> {
+    public static <T>T copyProperties(Object source,Class<T>clazz){
+        try {
+            T t= clazz.newInstance();
+            BeanUtils.copyProperties(source,t);
+            return t;
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    return null;
+    }
+}
+
+```
+
+#### 在BrandDTO中添加属性
+
+```java
+@NotNull(message = "品牌分类不能为空",groups = {MingruiOperation.Add.class})
+    @ApiModelProperty(value="品牌分类信息")
+    private String categories;
+```
+
+### 在entity下新建中间表的实体类CategoryBrandEntity	
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Table;
+
+/**
+ * @ClassName CategoryBrandEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/28
+ * @Version V1.0
+ **/
+@Table(name="tb_category_brand")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CategoryBrandEntity {
+
+    private Integer categoryId;
+
+    private Integer brandId;
+}
+
+```
+
+### 在BrandService接口中添加新增方法
+
+```java
+@PostMapping(value="brand/save")
+    @ApiOperation(value="新增品牌")
+    Result<JSONObject>saveBrand(@RequestBody BrandDTO brandDTO);
+```
+
+#### 在 mingrui-shop-service-xxx下的mapper中新建中间表的mapper  CategoryBrandMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.CategoryBrandEntity;
+import tk.mybatis.mapper.common.Mapper;
+import tk.mybatis.mapper.common.special.InsertListMapper;
+
+public interface CategoryBrandMapper extends InsertListMapper<CategoryBrandEntity>, Mapper<CategoryBrandEntity> {
+}
+
+```
+
+#### 品牌首字母自动识别问题
+
+##### 在common-core中的pom.xml文件添加依赖
+
+```xml
+<dependency> 
+	<groupId>com.belerweb</groupId> 
+		<artifactId>pinyin4j</artifactId>
+	<version>2.5.1</version> 
+</dependency>
+```
+
+##### 在utils包下新建PinYinUtil工具类
+
+```java
+package com.baidu.shop.utils;
+
+import net.sourceforge.pinyin4j.PinyinHelper;
+import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat;
+import net.sourceforge.pinyin4j.format.HanyuPinyinToneType;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * @ClassName pinyinUtil
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/28
+ * @Version V1.0
+ **/
+public class PinyinUtil {
+
+    public static final Boolean TO_FUUL_PINYIN = true;
+
+    public static final Boolean TO_FIRST_CHAR_PINYIN = false;
+    /**
+     * 获取汉字首字母或全拼大写字母
+     *
+     * @param chinese 汉字
+     * @param isFull  是否全拼 true:表示全拼 false表示：首字母
+     * @return 全拼或者首字母大写字符窜
+     */
+    public static String getUpperCase(String chinese, boolean isFull) {
+        return convertHanzi2Pinyin(chinese, isFull).toUpperCase();
+    }
+
+    /**
+     * 获取汉字首字母或全拼小写字母
+     *
+     * @param chinese 汉字
+     * @param isFull  是否全拼 true:表示全拼 false表示：首字母
+     * @return 全拼或者首字母小写字符窜
+     */
+    public static String getLowerCase(String chinese, boolean isFull) {
+        return convertHanzi2Pinyin(chinese, isFull).toLowerCase();
+    }
+
+    /**
+     * 将汉字转成拼音
+     * <p>
+     * 取首字母或全拼
+     *
+     * @param hanzi  汉字字符串
+     * @param isFull 是否全拼 true:表示全拼 false表示：首字母
+     * @return 拼音
+     */
+    private static String convertHanzi2Pinyin(String hanzi, boolean isFull) {
+        /***
+         * ^[\u2E80-\u9FFF]+$ 匹配所有东亚区的语言
+         * ^[\u4E00-\u9FFF]+$ 匹配简体和繁体
+         * ^[\u4E00-\u9FA5]+$ 匹配简体
+         */
+        String regExp = "^[\u4E00-\u9FFF]+$";
+        StringBuffer sb = new StringBuffer();
+        if (hanzi == null || "".equals(hanzi.trim())) {
+            return "";
+        }
+        String pinyin = "";
+        for (int i = 0; i < hanzi.length(); i++) {
+            char unit = hanzi.charAt(i);
+            //是汉字，则转拼音
+            if (match(String.valueOf(unit), regExp)) {
+                pinyin = convertSingleHanzi2Pinyin(unit);
+                if (isFull) {
+                    sb.append(pinyin);
+                } else {
+                    sb.append(pinyin.charAt(0));
+                }
+            } else {
+                sb.append(unit);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将单个汉字转成拼音
+     *
+     * @param hanzi 汉字字符
+     * @return 拼音
+     */
+    private static String convertSingleHanzi2Pinyin(char hanzi) {
+        HanyuPinyinOutputFormat outputFormat = new HanyuPinyinOutputFormat();
+        outputFormat.setToneType(HanyuPinyinToneType.WITHOUT_TONE);
+        String[] res;
+        StringBuffer sb = new StringBuffer();
+        try {
+            res = PinyinHelper.toHanyuPinyinStringArray(hanzi, outputFormat);
+            sb.append(res[0]);//对于多音字，只用第一个拼音
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+        return sb.toString();
+    }
+
+    /***
+     * 匹配
+     * <P>
+     * 根据字符和正则表达式进行匹配
+     *
+     * @param str 源字符串
+     * @param regex 正则表达式
+     *
+     * @return true：匹配成功  false：匹配失败
+     */
+    private static boolean match(String str, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(str);
+        return matcher.find();
+    }
+
+}
+
+```
+
+
+
+#### 在BrandServiceImpl中重新新增方法
+
+```java
+@Transactional
+    @Override
+    public Result<JSONObject> saveBrand(BrandDTO brandDTO) {
+        BrandEntity brandEntity = BaiduBeanUtil.copyProperties(brandDTO, BrandEntity.class);
+        brandEntity.setLetter(PinyinUtil.getUpperCase(String.valueOf(brandEntity.getName().toCharArray()[0]),false).toCharArray()[0]);
+        brandMapper.insertSelective(brandEntity);
+		//调用封装方法
+       this.saveOrUpdate(brandDTO.getCategories(),brandEntity.getId());
+        return this.setResultSuccess();
+    }
+//封装  批量新增 新增  方法
+     private void saveOrUpdate(String categories,Integer brandId){
+        if(StringUtils.isEmpty(categories)) throw new RuntimeException("分类信息不能为空");
+
+        //判断分类集合字符串中是否包含,
+        if(categories.contains(",")){//多个分类 --> 批量新增
+
+            categoryBrandMapper.insertList(
+                    Arrays.asList(categories.split(","))
+                            .stream()
+                            .map(categoryIdStr -> new CategoryBrandEntity(Integer.valueOf(categoryIdStr)
+                                    ,brandId))
+                            .collect(Collectors.toList())
+            );
+            //其他写法
+            // if(categories.contains(",")){
+//            String[] categoryArr  = categories.split(",");
+//
+//            /*for (String s : categoryArr){
+//                CategoryBrandEntity categoryBrandEntity = new CategoryBrandEntity();
+//                categoryBrandEntity.setBrandId(brandEntity.getId());
+//                categoryBrandEntity.setCategoryId(Integer.valueOf(s));
+//                categoryBrandEntities.add(categoryBrandEntity);
+//            }
+//                categoryBrandMapper.insertList(categoryBrandEntities);*/
+//            categoryBrandMapper.insertList(Arrays.asList(categoryArr).stream().map(categoryIdStr -> {
+//                CategoryBrandEntity categoryBrandEntity = new CategoryBrandEntity();
+//                categoryBrandEntity.setBrandId(brandEntity.getId());
+//                categoryBrandEntity.setCategoryId(Integer.valueOf(categoryIdStr));
+//                return categoryBrandEntity;
+//            }).collect(Collectors.toList()));
+
+        }else{//普通单个新增
+
+            CategoryBrandEntity categoryBrandEntity = new CategoryBrandEntity();
+            categoryBrandEntity.setBrandId(brandId);
+            categoryBrandEntity.setCategoryId(Integer.valueOf(categories));
+
+            categoryBrandMapper.insertSelective(categoryBrandEntity);
+        }
+```
+
+### 图片上传
+
+####  在mingrui-shop-basics下新建mingrui-shop-basic-upload-server并在pom.xml文件中添加依赖
+
+```xml
+<dependencies>
+        <!-- SpringBoot-整合Web组件 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu</groupId>
+            <artifactId>mingrui-shop-common-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+```
+
+#### 新建com.baidu.shop.upload.controller包结构 并在该包下新建类UploadController
+
+```java
+package com.baidu.shop.upload.controller;
+
+import com.baidu.shop.base.BaseApiService;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.status.HTTPStatus;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
+/**
+ * @ClassName UploadController
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/29
+ * @Version V1.0
+ **/
+@RestController
+@RequestMapping(value="upload")
+public class UploadController extends BaseApiService {
+
+        //linux系统的上传目录
+        @Value(value = "${mingrui.upload.path.windows}")
+        private String windowsPath;
+
+        //window系统的上传目录
+        @Value(value = "${mingrui.upload.path.linux}")
+        private String linuxPath;
+
+        @Value(value = "${mingrui.upload.img.host}")
+        private String imageHost;
+
+        @PostMapping
+        public Result<String> uploadImg(@RequestParam MultipartFile file) {
+
+            if(file.isEmpty()) return this.setResultError("上传的文件为空");//判断上传的文件是否为空
+
+            String filename = file.getOriginalFilename();//获取文件名
+
+            //String path = "";
+            String os = System.getProperty("os.name").toLowerCase();
+            String path = os.indexOf("win") != -1 ? windowsPath : os.indexOf("lin") != -1 ? linuxPath : "";
+//        if(os.indexOf("win") != -1){
+//            path = windowsPath;
+//        }else if(os.indexOf("lin") != -1){
+//            path = linuxPath;
+//        }
+
+            //UUID.randomUUID() + 1.jpg UUID.randomUUID() + 1.jpg
+            filename = UUID.randomUUID() + filename;//防止文件名重复
+
+            //创建文件 路径+分隔符(linux和window的目录分隔符不一样)+文件名
+            File dest = new File(path + File.separator + filename);
+
+            //判断文件夹是否存在,不存在的话就创建
+            if(!dest.getParentFile().exists()) dest.getParentFile().mkdirs();
+
+            try {
+                file.transferTo(dest);//上传
+            } catch (IllegalStateException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            return this.setResult(HTTPStatus.OK,"upload success!!!",imageHost + "/" + filename);//将文件名返回页面用于页面回显
+        }
+
+    }
+
+```
+
+#### 新建包结构com.baidu.gload并在该包下新建类 GlobalCorsConfig
+
+```java
+package com.baidu.global;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+
+/**
+ * @ClassName GlobalCorsConfig
+ * @Description: TODO
+ * @Author lss
+ * @Date 2020/12/29
+ * @Version V1.0
+ **/
+@Configuration
+public class GlobalCorsConfig {
+    @Bean
+    public CorsFilter corsFilter() {
+        final UrlBasedCorsConfigurationSource source = new
+                UrlBasedCorsConfigurationSource();
+        final CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true); // 允许cookies跨域
+        config.addAllowedOrigin("*");// 允许向该服务器提交请求的URI，*表示全部允许。。这里尽量限制来源域，比如http://xxxx:8080 ,以降低安全风险。。
+        config.addAllowedHeader("*");// 允许访问的头信息,*表示全部
+        config.setMaxAge(18000L);// 预检请求的缓存时间（秒），即在这个时间段里，对于相同的跨域请求不会再预检了
+        config.addAllowedMethod("*");// 允许提交请求的方法，*表示全部允许，也可以单独设置GET、PUT等
+        config.addAllowedMethod("HEAD");
+        config.addAllowedMethod("GET");// 允许Get的请求方法
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("DELETE");
+        config.addAllowedMethod("PATCH");
+        source.registerCorsConfiguration("/**", config);
+//3.返回新的CorsFilter.
+        return new CorsFilter(source);
+    }
+
+}
+
+```
+
+
+
+## 修改
+
+### 前台
+
+#### Mrbrand.vue
+
+```vue
+<template>
+  <v-card>
+    <v-card-title>
+      <v-btn color="info" @click="addData()">新增</v-btn>
+
+      <div class="text-xs-center">
+        <v-dialog v-model="dialog" width="500">
+          <v-card>
+            <v-card-title class="headline grey lighten-2" primary-title>
+              品牌{{ isEdit?'修改':'新增' }}//判断isEntity是否为true 为true执行修改 反之新增
+            </v-card-title>
+            <!--将模态框的状态传递到子组件
+            @closeModel="closeModel" 关闭模态框的函数中需要重置this.brandDetail,所以
+            需要新建closeModel方法
+            :isEdit="isEdit" 将新增还是修改的状态传递给子级组件
+            :brandDetail="brandDetail" 修改回显的数据
+            -->
+            <mr-brand-form @closeDialog="closeDialog" :dialog="dialog" :isEdit="isEdit" :brandDetail="brandDetail" />
+          </v-card>
+        </v-dialog>
+      </div>
+
+      <!-- 调按钮和输入框之间的间距 -->
+      <v-spacer />
+
+      <!--
+            append-icon : 图标
+            label : input默认值
+        -->
+      <v-text-field
+        append-icon="search"
+        label="品牌名称"
+        @keyup.enter="getTableData()"
+        v-model="search"
+      ></v-text-field>
+    </v-card-title>
+    <!-- 表格组件 -->
+    <v-data-table
+      :headers="headers"
+      :items="desserts"
+      :pagination.sync="pagination"
+      :total-items="total"
+      class="elevation-1"
+    >
+      <template slot="items" slot-scope="props">
+        <td class="text-xs-center">{{ props.item.id }}</td>
+        <td class="text-xs-center">{{ props.item.name }}</td>
+        <td class="text-xs-center">
+          <!-- src 是html标签的属性 :src="vue的属性" -->
+          <img width="100" :src="props.item.image" />
+        </td>
+        <td class="text-xs-center">{{ props.item.letter }}</td>
+        <td class="text-xs-center">
+          <v-btn flat icon color="yellow" @click="editData(props.item)">
+            <v-icon>edit</v-icon>
+          </v-btn>
+        </td>
+      </template>
+    </v-data-table>
+  </v-card>
+</template>
+<script>
+import MrBrandForm from "./MrBrandForm";
+export default {
+  name: "MrBrand",
+  components: {
+    MrBrandForm,
+  },
+  data() {
+    return {
+      brandDetail:{},
+      isEdit:false,
+      pagination: {},
+      dialog: false,
+      total: 0,
+      search: "",
+      headers: [
+        {
+          text: "id",
+          align: "center",
+          value: "id",
+        },
+        {
+          text: "品牌名称",
+          align: "center",
+          value: "name",
+        },
+        {
+          text: "品牌logo",
+          align: "center",
+          value: "image",
+        },
+        {
+          text: "首字母",
+          align: "center",
+          value: "letter",
+        },
+        {
+          text: "操作",
+          align: "center",
+          sortable: false,
+          value: "id",
+        },
+      ],
+      desserts: [],
+    };
+  },
+  mounted() {
+    this.getTableData();
+  },
+  methods: {
+    closeDialog () {
+      this.dialog = false;
+      this.getTableData();
+    },
+    addData () {
+      //this.brandDetail = {};
+      this.isEdit = false;
+      this.dialog = true;
+    },
+    editData (obj) {
+      this.brandDetail = obj;
+      this.isEdit = true;
+      this.dialog = true;
+    },
+    getTableData() {
+      this.$http
+        .get("/brand/list", {
+          params: {
+            page: this.pagination.page,
+            rows: this.pagination.rowsPerPage,
+            sort: this.pagination.sortBy,
+            order: this.pagination.descending,
+            name: this.search,
+          },
+        })
+        .then((resp) => {
+          this.desserts = resp.data.data.list;
+          this.total = resp.data.data.total;
+        })
+        .catch((error) => console.log(error));
+    },
+  },
+  watch: {
+    pagination() {
+      this.getTableData();
+    },
+  },
+};
+</script>
+```
+
+#### 修改需要先通过品牌的id查询该品牌绑定的分类属性
+
+#### 需要在分类的CategroyService接口中添加查询方法
+
+```java
+@ApiOperation(value = "通过品牌id查询商品分类")
+    @GetMapping(value = "category/brand")
+    Result<List<CategoryEntity>> getByBrand(Integer brandId);
+```
+
+#### 直接在CategoryServiceImpl中重新接口中的查询方法
+
+```java
+ @Override
+    public Result<List<CategoryEntity>> getByBrand(Integer brandId) {
+        List<CategoryEntity> categoryByBrandId = categoryMapper.getCategoryByBrandId(brandId);
+        return this.setResultSuccess(categoryByBrandId);
+    }
+```
+
+#### 在BrandService接口中添加修改方法
+
+```java
+@PutMapping(value="brand/save")
+    @ApiOperation(value="修改品牌")
+    Result<JSONObject>editBrand(@RequestBody BrandDTO brandDTO);
+```
+
+#### 在BrandServiceImpl实现类中重写修改方法
+
+```java
+//修改
+    @Transactional
+    @Override
+    public Result<JSONObject> editBrand(BrandDTO brandDTO) {
+        BrandEntity brandEntity = BaiduBeanUtil.copyProperties(brandDTO, BrandEntity.class);
+        brandEntity.setLetter(PinyinUtil.getUpperCase(String.valueOf(brandEntity.getName().toCharArray()[0]),false).toCharArray()[0]);
+        brandMapper.updateByPrimaryKeySelective(brandEntity);
+        //通过brandId删除中间表
+        this.deleteCategoryBrandByBrandId(brandDTO.getId());
+        //批量新增  新增
+        this.saveOrUpdate(brandDTO.getCategories(),brandEntity.getId());
+        return this.setResultSuccess();
+    }
+```
+
+
+
+## 删除
+
+### 前台
+
+#### 在Mrbrand中给删除按钮绑定删除事件
+
+```vue
+<v-btn flat icon @click="deleteData(props.item.id)" color="blue">
+<v-icon>delete</v-icon>
+</v-btn>
+```
+
+#### 删除方法
+
+```js
+ deleteData(id){
+      this.$message.confirm('此操作将永久删除该品牌, 是否继续?').then(() => {
+          // 发起删除请求
+          this.$http.delete("/brand/delete?id=" + id,)
+            .then(resp => {
+              if(resp.data.code!=200){
+                this.$message.error(resp.data.msg)
+                return;
+              }
+              // 删除成功，重新加载数据
+              this.$message.success("删除成功！");
+              this.getTableData();
+            }).catch(error => this.$message.error(error));
+        }).catch(() => {
+          this.$message.info("删除已取消！");
+        });
+```
+
+### 后台
+
+#### mingrui-shop-server-api-xxx 中的 Brandservice接口写删除方法
+
+```java
+@DeleteMapping(value="brand/delete")
+@ApiOperation(value="删除品牌")
+Result<JSONObject>deleteBrand(Integer id);
+```
+
+#### mingrui-shop-service-xxx 中的BrandserviceImpl实现类重写接口中的删除方法
+
+```java
+@Transactional
+@Override
+public Result<JSONObject> deleteBrand(Integer id) {
+    //通过id删除数据
+    brandMapper.deleteByPrimaryKey(id);
+    //通过brandId删除中间表
+    this.deleteCategoryBrandByBrandId(id);	
+    return this.setResultSuccess();
+};
+//封装通过brandId删除中间表的方法
+ private void deleteCategoryBrandByBrandId(Integer brandId){
+        Example example = new Example(CategoryBrandEntity.class);
+        example.createCriteria().andEqualTo("brandId",brandId);
+        categoryBrandMapper.deleteByExample(example);
+ }
+
+```
+
+# 规格管理
+
+## 规格组查询
+
+#### 	1.加载分类信息
+
+​	  在index.js页面29行进行修改
+
+```js
+route("/item/specification",'/item/specification/Specification',"Specification"),
+```
+
+​	在specification下的Specification.vue进行修改   把url设置成我们自己的
+
+```vue
+<v-tree url="/category/list" :isEdit="false" @handleClick="handleClick"/>
+```
+
+#### 	2.规格组查询
+
+##### 	2.1vue项目
+
+​	在SpecGroup.vue查询方法进行修改  把请求改为我们自己的
+
+```js
+	loadData(){
+          this.$http.get("/specgroup/getSpecGroupInfo",{
+              params:{
+                  cid:this.cid
+              }
+          })
+          .then(({data}) => {
+              this.groups = data.data;
+          })
+          .catch(() => {
+              this.groups = [];
+          })
+      },
+```
+
+##### 2.2.后台
+
+###### 	在mingrui-shop-service-api-xxxx下的entity包下新建SpecGroupEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * @ClassName SpecGroupEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/4
+ * @Version V1.0
+ **/
+@Table(name = "tb_spec_group")
+@Data
+public class SpecGroupEntity {
+    @Id
+    private Integer id;
+
+    private Integer cid;
+
+    private String name;
+}
+
+```
+
+###### 在dto包下新建SpecGroupDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.base.BaseDTO;
+import com.baidu.shop.validate.group.MingruiOperation;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName SpecGroupDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/4
+ * @Version V1.0
+ **/
+@ApiModel(value = "规格组数据输出DTO")
+@Data
+public class SpecGroupDTO extends BaseDTO {
+
+    @ApiModelProperty(value = "主键",example = "1")
+    @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
+    private Integer id;
+
+    @ApiModelProperty(value = "分类Id",example = "1")
+    @NotNull(message = "分类Id不能为空",groups = {MingruiOperation.Update.class})
+    private Integer cid;
+
+    @ApiModelProperty(value = "规格组名称")
+    @NotEmpty(message = "规格名称不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String name;
+}
+
+```
+
+###### 在service包下新建SpecificationService
+
+###### 
+
+```java
+package com.baidu.shop.service;
+
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.SpecGroupDTO;
+import com.baidu.shop.entity.SpecGroupEntity;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.*;
+
+
+import java.util.List;
+
+@Api("规格接口")
+public interface SpecificationService {
+    @ApiOperation("通过条件查询规则数据")
+    @GetMapping("specgroup/getSpecGroupInfo")
+    Result<List<SpecGroupEntity>> getSpecGroupInfo(SpecGroupDTO specGroupDTO);
+ }
+```
+
+###### 在 mingrui-shop-service-xxx下的mapper包下新建SpecGroupMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.SpecGroupEntity;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface SpecGroupMapper extends Mapper<SpecGroupEntity> {
+}
+```
+
+###### 在service.impl下新建SpecificationServiceImpl
+
+```java
+package com.baidu.shop.service.impl;
+
+import com.baidu.shop.base.BaseApiService;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.SpecGroupDTO;
+import com.baidu.shop.entity.SpecGroupEntity;
+import com.baidu.shop.mapper.SpecGroupMapper;
+import com.baidu.shop.service.SpecificationService;
+import com.baidu.shop.utils.ObjectUtil;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RestController;
+import tk.mybatis.mapper.entity.Example;
+import javax.annotation.Resource;
+import java.util.List;
+
+
+import javax.annotation.Resource;
+import java.util.List;
+
+/**
+ * @ClassName SpecificationServiceImpl
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/4
+ * @Version V1.0
+ **/
+@RestController
+public class SpecificationServiceImpl extends BaseApiService implements SpecificationService {
+    @Resource
+    private SpecGroupMapper specGroupMapper;
+
+    @Override
+    public Result<List<SpecGroupEntity>> getSpecGroupInfo(SpecGroupDTO specGroupDTO) {
+
+        Example example = new Example(SpecGroupEntity.class);
+        if(ObjectUtil.isNotNull(specGroupDTO.getCid())){ example.createCriteria().andEqualTo("cid",BaiduBeanUtils.copyProperties(specGroupDTO,SpecGroupEntity.class).getCid());
+}
+        List<SpecGroupEntity> specGroupEntities = specGroupMapper.selectByExample(example);
+        return this.setResultSuccess(specGroupEntities);
+    }
+}
+
+```
+
+## 规格组增删改
+
+#### 1.vue项目	
+
+##### 在SpecGroup.vue下修改新增，删除方法
+
+```js
+ save(){
+           this.$http({
+            method: this.isEdit ? 'put' : 'post',
+            url: '/specgroup/save',
+            data: this.group
+          }).then(() => {
+            // 关闭窗口
+            this.show = false;
+            this.$message.success("保存成功！");
+            this.loadData();
+          }).catch(() => {
+              this.$message.error("保存失败！");
+            });
+      },
+      deleteGroup(id){
+          this.$message.confirm("确认要删除分组吗？")
+          .then(() => {
+            this.$http.delete("/specgroup/delete?id=" + id)
+                .then(resp => {
+                    if (resp.data.code != 200) {
+                         this.$message.error(resp.data.message);
+                         return;
+                    }
+                    this.$message.success("删除成功");
+                    this.loadData();
+                })
+          })
+      },
+```
+
+#### 2.后台
+
+##### 在SpecificationService下新增接口
+
+```java
+	@ApiOperation("新增规则数据")
+    @PostMapping("specgroup/save")
+    Result<JSONObject> saveSpecGroupInfo(@RequestBody  SpecGroupDTO specGroupDTO);
+
+    @ApiOperation("修改规则数据")
+    @PutMapping("specgroup/save")
+    Result<JSONObject> editSpecGroupInfo(@RequestBody  SpecGroupDTO specGroupDTO);
+
+    @ApiOperation("删除规则数据")
+    @DeleteMapping("specgroup/delete")
+    Result<JSONObject> deleteSpecGroupInfo(Integer id);
+```
+
+##### 实现类实现SpecificationService接口
+
+```java
+	@Transactional
+    @Override
+    public Result<JSONObject> deleteSpecGroupInfo(Integer id) {
+        //判断规格组当中如果有参数不能删除
+        Example example = new Example(SpecParamEntity.class);
+        example.createCriteria().andEqualTo("groupId",id);
+        List<SpecParamEntity> specParamEntities = specParamMapper.selectByExample(example);
+        if (specParamEntities.size() > 0) return  this.setResultError("已有参数不能删除");
+        
+        specGroupMapper.deleteByPrimaryKey(id);
+        return this.setResultSuccess();
+    }
+
+    @Transactional
+    @Override
+    public Result<JSONObject> editSpecGroupInfo(SpecGroupDTO specGroupDTO) {
+        specGroupMapper.updateByPrimaryKeySelective(BaiduBeanUtils.copyProperties(specGroupDTO,SpecGroupEntity.class));
+        return this.setResultSuccess();
+    }
+
+    @Transactional
+    @Override
+    public Result<JSONObject> saveSpecGroupInfo(SpecGroupDTO specGroupDTO) {
+        specGroupMapper.insertSelective(BaiduBeanUtils.copyProperties(specGroupDTO,SpecGroupEntity.class));
+        return this.setResultSuccess();
+    }
+```
+
+## 规格参数查询
+
+#### 	1.vue项目
+
+##### 	在SpecParam.vue下的125行进行修改
+
+```js
+	loadData() {
+      this.$http
+        .get("/specparam/getSpecParamInfo",{
+          params:{
+            groupId:this.group.id
+          }
+        })
+        .then((resp) => {
+          resp.data.data.forEach(p => {
+              p.segments = p.segments ? p.segments.split(",").map(s => s.split("-")) : [];
+          })
+          this.params = resp.data.data;
+        })
+        .catch(() => {
+          this.params = [];
+        });
+    },
+```
+
+#### 	2.后台
+
+##### 	在mingrui-shop-service-api-xxxx下的entity包下新建SpecParamEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.Column;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * @ClassName SpecParamEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/4
+ * @Version V1.0
+ **/
+@Table(name = "tb_spec_param")
+@Data
+public class SpecParamEntity {
+           /* `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+            `cid` bigint(20) NOT NULL COMMENT '商品分类id',
+            `group_id` bigint(20) NOT NULL,
+             `name` varchar(255) NOT NULL COMMENT '参数名',
+            `numeric` tinyint(1) NOT NULL COMMENT '是否是数字类型参数，true或false',
+            `unit` varchar(255) DEFAULT '' COMMENT '数字类型参数的单位，非数字类型可以为空',
+            `generic` tinyint(1) NOT NULL COMMENT '是否是sku通用属性，true或false',
+            `searching` tinyint(1) NOT NULL COMMENT '是否用于搜索过滤，true或false',
+            `segments` varchar(1000) DEFAULT '' COMMENT '数值类型参数，如果需要搜索，则添加分段间隔值，如CPU频率间隔：0.5-1.0',*/
+        @Id
+        private Integer id;
+
+        private Integer cid;
+
+        private Integer groupId;
+
+        private String name;
+
+        @Column(name = "`numeric`")
+        private Boolean numeric;
+
+        private String unit;
+
+        private Boolean generic;
+
+        private Boolean searching;
+
+        private String segments;
+}
+
+```
+
+##### 在dto包下新建SpecParamDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.validate.group.MingruiOperation;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName SpecParamDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/4
+ * @Version V1.0
+ **/
+@ApiModel("规格参数数据传输DTO")
+@Data
+public class SpecParamDTO {
+    @ApiModelProperty(value = "主键",example = "1")
+    @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
+    private Integer id;
+
+    @ApiModelProperty(value = "分类Id",example = "1")
+    @NotNull(message = "分类Id不能为空",groups = {MingruiOperation.Update.class})
+    private Integer cid;
+
+    @ApiModelProperty(value = "规格组Id",example = "1")
+    @NotNull(message = "规格组Id不能为空",groups = {MingruiOperation.Update.class})
+    private Integer groupId;
+
+    @ApiModelProperty(value = "规格参数名称")
+    @NotEmpty(message = "规格参数名称不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String name;
+
+    @ApiModelProperty(value = "是否是数字类型参数")
+    @NotNull(message = "是否是数字类型参数不能为空s",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private Boolean numeric;
+
+    @ApiModelProperty(value = "数字类型参数的单位")
+    @NotEmpty(message = "数字类型参数的单位不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String unit;
+
+    @ApiModelProperty(value = "是否是sku通用属性")
+    @NotNull(message = "是否是sku通用属性不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private Boolean generic;
+
+    @ApiModelProperty(value = "是否用于搜索过滤")
+    @NotNull(message = "是否用于搜索过滤s不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private Boolean searching;
+
+    @ApiModelProperty(value = "数值类型参数")
+    @NotEmpty(message = "数值类型参数不能为空",groups = {MingruiOperation.Add.class,MingruiOperation.Update.class})
+    private String segments;
+}
+
+```
+
+##### 在SpecificationService中添加
+
+```java
+	@ApiOperation("通过条件查询规则参数")
+    @GetMapping("specparam/getSpecParamInfo")
+    Result<List<SpecParamEntity>> getSpecParamInfo(SpecParamDTO specParamDTO);
+```
+
+##### 在mingrui-shop-service-xxx下的mapper包下新建SpecParamMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.SpecParamEntity;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface SpecParamMapper extends Mapper<SpecParamEntity> {
+}
+
+```
+
+##### 在SpecificationServiceImpl中添加
+
+```Java
+	@Resource
+    private SpecParamMapper specParamMapper;、
+    
+     @Override
+    public Result<List<SpecParamEntity>> getSpecParamInfo(SpecParamDTO specParamDTO) {
+        SpecParamEntity specParamEntity = BaiduBeanUtils.copyProperties(specParamDTO, SpecParamEntity.class);
+        Example example = new Example(SpecParamEntity.class);
+        example.createCriteria().andEqualTo("groupId",specParamEntity.getGroupId());
+        List<SpecParamEntity> specParamEntities = specParamMapper.selectByExample(example);
+        return this.setResultSuccess(specParamEntities);
+    }
+```
+
+## 规格参数增删改
+
+#### 1.vue项目
+
+##### 在SpecGroup.vue下修改新增，删除方法
+
+```js
+ 	deleteParam(id) {
+        this.$message.confirm("确认要删除该参数吗？")
+        .then(() => {
+            this.$http.delete("/specparam/delete?id=" + id)
+            .then(() => {
+                this.$message.success("删除成功");
+                this.loadData();
+            })
+            .catch(() => {
+                this.$message.error("删除失败");
+            })
+        })
+    },
+    formatBoolean(boo) {
+      return boo ? "是" : "否";
+    },
+    save(){
+        const p = {};
+        Object.assign(p, this.param);
+        p.segments = p.segments.map(s => s.join("-")).join(",")
+        this.$http({
+            method: this.isEdit ? 'put' : 'post',
+            url: '/specparam/saveSpecParamInfo',
+            data: p,
+        }).then(() => {
+            // 关闭窗口
+            this.show = false;
+            this.$message.success("保存成功！");
+            this.loadData();
+          }).catch(() => {
+              this.$message.error("保存失败！");
+            });
+    }
+```
+
+#### 2.后台
+
+##### 在mingrui-shop-service-api-xxx下的SpecificationService中添加接口
+
+```java
+	@ApiOperation("新增规则参数")
+    @PostMapping("specparam/saveSpecParamInfo")
+    Result<JSONObject>  saveSpecParamInfo(@RequestBody SpecParamDTO specParamDTO);
+
+    @ApiOperation("修改规则参数")
+    @PutMapping("specparam/saveSpecParamInfo")
+    Result<JSONObject>  editSpecParamInfo(@RequestBody SpecParamDTO specParamDTO);
+
+    @ApiOperation("删除规则参数")
+    @DeleteMapping("specparam/delete")
+    Result<JSONObject>  deleteSpecParamInfo(Iteger id);
+```
+
+##### 在SpecificationServiceImpl中添加
+
+```java
+ 	@Transactional
+    @Override
+    public Result<JSONObject> deleteSpecParamInfo(Integer id) {
+        specParamMapper.deleteByPrimaryKey(id);
+        return this.setResultSuccess();
+    }
+
+    @Transactional
+    @Override
+    public Result<JSONObject> editSpecParamInfo(SpecParamDTO specParamDTO) {
+        SpecParamEntity specParamEntity = BaiduBeanUtils.copyProperties(specParamDTO, SpecParamEntity.class);
+        specParamMapper.updateByPrimaryKeySelective(specParamEntity);
+        return this.setResultSuccess();
+    }
+
+    @Transactional
+    @Override
+    public Result<JSONObject> saveSpecParamInfo(SpecParamDTO specParamDTO) {
+        SpecParamEntity specParamEntity = BaiduBeanUtils.copyProperties(specParamDTO, SpecParamEntity.class);
+        if (null == specParamEntity.getName()) return this.setResultError("参数名不能为空");
+        specParamMapper.insertSelective(specParamEntity);
+        return this.setResultSuccess();
+    }
+```
+
+## 规格项目当中遇到的问题
+
+#### 1.规格参数修改完成后无法新增   
+
+##### 修改SpecParam.vue文件    在新增方法中国添加this.isEdit = false;
+
+```js
+    addParam() {
+      this.param = {
+          cid: this.group.cid,
+          groupId: this.group.id,
+          segments:[],
+          numeric:false,
+          searching:false,
+          generic:false}
+      this.show = true;
+      this.isEdit = false;
+    },
+```
+
+# 商品管理
+
+## 查询
+
+#### Goods.vue
+
+line: 9 , 12 ,15                         true=1,false=0
+
+```vue
+		状态：
+        <v-btn-toggle mandatory v-model="search.saleable">
+          <v-btn flat :value="2">
+            全部
+          </v-btn>
+          <v-btn flat :value="1">
+            上架
+          </v-btn>
+          <v-btn flat :value="0">
+            下架
+          </v-btn>
+        </v-btn-toggle>
+```
+
+line: 203          把测试数据删了，请求后台数据
+
+```vue
+getDataFromApi() {
+        this.loading = true;
+        this.$http.get("/goods/getSpuInfo",{
+          params:{
+            page: this.pagination.page,
+            rows: this.pagination.rowsPerPage,
+            sort: this.pagination.sortBy,
+            order: this.pagination.descending,
+            saleable: this.search.saleable,
+            title: this.search.key
+          }
+        }).then(resp => {
+          this.items=resp.data.data.list;
+          this.totalItems=resp.data.data.total;
+          this.loading=false;
+          console.log(resp.data.data.list)
+        }).catch(error => console.log(error))
+      }
+```
+
+####  mingrui-shop-service-api-xxx
+
+#####  entity包下新建SpuEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+
+/**
+ * 2 * @ClassName SpuEntity
+ * 3 * @Description: TODO
+ * 4 * @Author lss
+ * 5 * @Date 2021/1/5
+ * 6 * @Version V1.0
+ * 7
+ **/
+@Table(name = "tb_spu")
+@Data
+public class SpuEntity {
+    @Id
+    private Integer id;
+
+    private String title;
+
+    private String subTitle;
+
+    private Integer cid1;
+
+    private Integer cid2;
+
+    private Integer cid3;
+
+    private Integer brandId;
+
+    private Integer saleable;
+
+    private Integer valid;
+
+    private Date createTime;
+
+    private Date lastUpdateTime;
+
+}
+```
+
+#####  dto包下新建SpuDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.base.BaseDTO;
+import com.baidu.shop.validate.group.MingruiOperation;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import java.util.Date;
+
+/**
+ * 2 * @ClassName SpuDTO
+ * 3 * @Description: TODO
+ * 4 * @Author lss
+ * 5 * @Date 2021/1/5
+ * 6 * @Version V1.0
+ * 7
+ **/
+@ApiModel(value = "spu数据传输DTO")
+@Data
+public class SpuDTO extends BaseDTO {
+
+    @ApiModelProperty(value = "主键",example = "1")
+    @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
+    private Integer id;
+
+    @ApiModelProperty(value = "标题")
+    @NotEmpty(message = "标题不能为空",groups = {MingruiOperation.Add.class})
+    private String title;
+
+    @ApiModelProperty(value = "子标题")
+    private String subTitle;
+
+    @ApiModelProperty(value = "1级类目id",example = "1")
+    @NotNull(message = "1级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid1;
+
+    @ApiModelProperty(value = "2级类目id",example = "1")
+    @NotNull(message = "2级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid2;
+
+    @ApiModelProperty(value = "3级类目id",example = "1")
+    @NotNull(message = "3级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid3;
+
+    @ApiModelProperty(value = "商品所属品牌id")
+    @NotNull(message = "商品所属品牌id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer brandId;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "是否上架，0下架，1上架",example = "1")
+    private Integer saleable;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "是否有效，0已删除，1有效",example = "1")
+    private Integer valid;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "添加时间")
+    private Date createTime;
+
+    //不需要验证,新增时直接设置默认值,修改时使用java代码赋值
+    @ApiModelProperty(value = "最后修改时间")
+    private Data lastUpdateTime;
+    
+    //用于存储商品分类名
+    private Strin brandName;
+    
+    //用于存储品牌名
+	private String categoryName;
+
+
+    
+}
+```
+
+#### service包下新建GoodsService
+
+```java
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.SpuDTO;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
+
+@Api(tags = "商品接口")
+public interface GoodsService {
+
+    @ApiOperation(value = "获取spu信息")
+    @GetMapping(value = "/goods/getSpuInfo")
+    Result<List<SpuDTO>> getSpuInfo(SpuDTO spuDTO);
+}
+```
+
+#### mingrui-shop-service-xxx
+
+###### mapper包下新建SpuMapper
+
+```java
+import com.baidu.shop.entity.SpuEntity;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface SpuMapper extends Mapper<SpuEntity> {
+}
+```
+
+##### 修改CategoryMapper ，用于查询商品分类的name名，因为要查出来的分类名是多个值，所以又继承了一个
+
+##### SelectByIdListMapper，第一个泛型是根据哪个类，第二个是查询参数的类型
+
+```java
+import com.baidu.shop.entity.CategoryEntity;
+import org.apache.ibatis.annotations.Select;
+import tk.mybatis.mapper.additional.idlist.SelectByIdListMapper;
+import tk.mybatis.mapper.common.Mapper;
+
+import java.util.List;
+
+//可以通过id集合查询
+public interface CategoryMapper extends Mapper<CategoryEntity>, SelectByIdListMapper<CategoryEntity,Integer> {
+
+    @Select(value = "SELECT id,name from tb_category where id in (select category_id from tb_category_brand where brand_id=#{brandId})")
+    List<CategoryEntity> getCategoryByBrandId(Integer brandId);
+}
+```
+
+######  service.impl包下新建GoodsServiceImpl
+
+```java
+import com.baidu.shop.base.BaseApiService;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.SpuDTO;
+import com.baidu.shop.entity.BrandEntity;
+import com.baidu.shop.entity.CategoryEntity;
+import com.baidu.shop.entity.SpuEntity;
+import com.baidu.shop.mapper.BrandMapper;
+import com.baidu.shop.mapper.CategoryMapper;
+import com.baidu.shop.mapper.SpuMapper;
+import com.baidu.shop.service.GoodsService;
+import com.baidu.shop.status.HTTPStatus;
+import com.baidu.shop.utils.BaiduBeanUtil;
+import com.baidu.shop.utils.ObjectUtil;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.web.bind.annotation.RestController;
+import tk.mybatis.mapper.entity.Example;
+
+import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 2 * @ClassName GoodsServiceImpl
+ * 3 * @Description: TODO
+ * 4 * @Author lss
+ * 5 * @Date 2021/1/5
+ * 6 * @Version V1.0
+ * 7
+ **/
+@RestController
+public class GoodsServiceImpl extends BaseApiService implements GoodsService {
+    @Resource
+    private SpuMapper spuMapper;
+    @Resource
+    private BrandMapper brandMapper;
+    @Resource
+    private CategoryMapper categoryMapper;
+
+    @Override
+    public Result<List<SpuDTO>> getSpuInfo(SpuDTO spuDTO) {
+        //分页
+        if (ObjectUtil.isNotNull(spuDTO.getPage()) && ObjectUtil.isNotNull(spuDTO.getRows()))
+            PageHelper.startPage(spuDTO.getPage(),spuDTO.getRows());
+
+        Example example = new Example(SpuEntity.class);
+        Example.Criteria criteria = example.createCriteria();
+        //判断是否上架，如果值为空或者<2，就是1，0的时候，1是上架，0是下架
+        if (ObjectUtil.isNotNull(spuDTO.getSaleable()) && spuDTO.getSaleable()<2)
+            criteria.andEqualTo("saleable",spuDTO.getSaleable());
+        //按标题模糊匹配
+        if (!StringUtils.isEmpty(spuDTO.getTitle()))
+            criteria.andLike("title","%"+spuDTO.getTitle()+"%");
+        //排序
+        if (!StringUtils.isEmpty(spuDTO.getSort()))
+            example.setOrderByClause(spuDTO.getOrderBy());
+
+        List<SpuEntity> spuEntities = spuMapper.selectByExample(example);
+
+        List<SpuDTO> spuDTOList = spuEntities.stream().map(spuEntity -> {
+            SpuDTO spuDTO1 = BaiduBeanUtil.copyProperties(spuEntity, SpuDTO.class);
+
+            //分类名称 cid1 + cid2 + cid3
+            /*CategoryEntity categoryEntity1 = categoryMapper.selectByPrimaryKey(spuEntity.getCid1());
+            CategoryEntity categoryEntity2 = categoryMapper.selectByPrimaryKey(spuEntity.getCid2());
+            CategoryEntity categoryEntity3 = categoryMapper.selectByPrimaryKey(spuEntity.getCid3());
+            spuDTO1.setCategoryName(categoryEntity1+"/"+categoryEntity2+"/"+categoryEntity3);*/
+
+            /*List<Integer> cidList = new ArrayList<>();
+            cidList.add(spuEntity.getCid1());
+            cidList.add(spuEntity.getCid2());
+            cidList.add(spuEntity.getCid3());*/
+//            List<Integer> cidList = Arrays.asList(spuEntity.getCid1(), spuEntity.getCid2(), spuEntity.getCid3());
+
+            //通过分类id集合查询数据
+            List<CategoryEntity> categoryEntities = categoryMapper.selectByIdList(Arrays.asList(spuEntity.getCid1(), spuEntity.getCid2(), spuEntity.getCid3()));
+            // 遍历集合并且将分类名称用 / 拼接
+            // 3/1/2
+            //ajax --> 并不是所有情况都要用异步 jquery.validate 验证用户名存在不存在
+            String categoryName = categoryEntities.stream().map(categoryEntity -> categoryEntity.getName()).collect(Collectors.joining("/"));
+            //将在商品分类表中查到的商品分类名赋值给商品表中的商品分类名
+            spuDTO1.setCategoryName(categoryName);
+//            String categoryName="";
+//            List<String> strings = new ArrayList<>();
+//            strings.set(0,"");
+//            categoryEntities.stream().forEach(categoryEntity -> {
+//                strings.set(0,strings.get(0) + categoryEntity.getName() + "/");
+//            });
+//            categoryName=strings.get(0).substring(0,strings.get(0).length());
+
+
+
+            //根据商品中的brandid到品牌表查询品牌名字
+            BrandEntity brandEntity = brandMapper.selectByPrimaryKey(spuEntity.getBrandId());
+            //将在品牌表中查到的品牌名赋值给商品表中的品牌名
+            spuDTO1.setBrandName(brandEntity.getName());
+
+            return spuDTO1;
+        }).collect(Collectors.toList());
+        
+        PageInfo<SpuEntity> spuEntityPageInfo = new PageInfo<>(spuEntities);
+        //把分页的数据放在message中传到页面
+        //返回的是  一：Integer类型的code，二：String类型的message，三：Object类型的data
+        return this.setResult(HTTPStatus.OK,spuEntityPageInfo.getTotal()+"",spuDTOList);
+    }
+}
+```
+
+![image-20210106154023025](D:\MD文件图片\image-20210106154023025.png)
+
+## 新增
+
+#### GoodsForm.vue
+
+  line:283  			请求到后台查询
+
+```vue
+		// 根据分类查询品牌
+          this.$http
+            .get("/brand/getBrandInfoByCategoryId",{
+              params:{
+                cid:this.goods.categories[2].id
+              }
+            } )
+            .then((resp) => {
+              this.brandOptions = resp.data.data;
+            });		
+```
+
+##### BrandService
+
+```
+	@ApiOperation(value = "根据分类查询品牌")
+    @GetMapping(value = "/brand/getBrandInfoByCategoryId")
+    Result<List<BrandEntity>> getBrandInfoByCategoryId(Integer cid);
+```
+
+##### BrandMapper
+
+自定义查询方法，根据分类id查询品牌信息，*可以换成id，name
+
+```java
+import com.baidu.shop.entity.BrandEntity;
+import org.apache.ibatis.annotations.Select;
+import tk.mybatis.mapper.common.Mapper;
+
+import java.util.List;
+
+public interface BrandMapper extends Mapper<BrandEntity> {
+    @Select(value = "select * from tb_brand b where b.id in (select cb.brand_id from tb_category_brand cb where cb.category_id=#{cid})")
+    List<BrandEntity> getBrandInfoByCategoryId(Integer cid);
+}
+```
+
+##### BrandServiceImpl
+
+```java
+@Override
+public Result<List<BrandEntity>> getBrandInfoByCategoryId(Integer cid) {
+    //使用自定义查询方法
+    List<BrandEntity> list=brandMapper.getBrandInfoByCategoryId(cid);
+    return this.setResultSuccess(list);
+}
+```
+
+##### 据分类查询规格参数+图片上传↓
+
+##### GoodsForm.vue
+
+line:293
+
+```vue
+		// 根据分类查询规格参数
+          this.$http
+            .get("/specparam/groups",{
+                params:{
+                  cid:this.goods.categories[2].id
+                }
+            } )
+```
+
+line:300
+
+```vue
+		 .then((resp) => {
+              let specs = [];
+              let template = [];
+              if (this.isEdit){
+                specs = JSON.parse(this.goods.spuDetail.genericSpec);
+                template = JSON.parse(this.goods.spuDetail.specialSpec);
+              }
+              // 对特有规格进行筛选
+              const arr1 = [];
+              const arr2 = [];
+              resp.data.data.forEach(({id, name,generic, numeric, unit }) => {
+```
+
+line:57   		路径改为自己后台的上传路径
+
+```
+ <v-editor v-model="goods.spuDetail.description" upload-url="/upload"/>
+```
+
+line:118
+
+```vue
+<!--图片上传组件-->
+<v-upload v-model="props.item.images" url="/upload"/>
+```
+
+#### Editor.vue
+
+line：95
+
+```
+this.$http.post(this.uploadUrl, data)
+          .then(res => {
+            if (res.data.data) {
+              this.editor.insertEmbed(this.editor.getSelection().index, 'image', res.data.data)
+            }
+          })
+```
+
+##### SpecificationServiceImpl
+
+先判断传过去的值是不是空，然后根据分类查询规格参数
+
+```java
+@Override
+public Result<List<SpecParamEntity>> getSepcParamInfo(SpecParamDTO specParamDTO) {
+    SpecParamEntity specParamEntity = BaiduBeanUtil.copyProperties(specParamDTO, SpecParamEntity.class);
+
+    Example example = new Example(SpecParamEntity.class);
+    Example.Criteria criteria = example.createCriteria();
+
+    if (ObjectUtil.isNotNull(specParamEntity.getGroupId()))
+        criteria.andEqualTo("groupId",specParamEntity.getGroupId());
+    if (ObjectUtil.isNotNull(specParamEntity.getCid()))
+        criteria.andEqualTo("cid",specParamEntity.getCid());
+
+    List<SpecParamEntity> specParamEntities = specParamMapper.selectByExample(example);
+    return this.setResultSuccess(specParamEntities);
+}
+```
+
+#### JavaScript 值转换为 JSON 字符串。————>JSON.stringify(JavaScript 值）方法
+
+例如字符串转JSON 		 **JSON.stringify(String类型的值)**
+
+#### JSON转字符串	————>	JSON.parse(JSON类型的值) 方法
+
+#### 新增需要增添四张表的数据,sku,spu,stock,spudetail ,现只有spuEntity表 需要添加另外三张表的Entity
+
+##### SpuDetailEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * @ClassName SpuDetailEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/7
+ * @Version V1.0
+ **/
+@Table(name="tb_spu_detail")
+@Data
+public class SpuDetailEntity {
+    @Id
+    private Integer spuId;
+
+    private String description;
+
+    private String genericSpec;
+
+    private String specialSpec;
+
+    private String packingList;
+
+    private String afterService;
+}
+
+```
+
+##### skuEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+
+/**
+ * @ClassName SkuEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/7
+ * @Version V1.0
+ **/
+@Table(name="tb_sku")
+@Data
+public class SkuEntity {
+
+    @Id//此处必须写long类型,因为现在新增的id已经超过int的范围了
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Integer spuId;
+
+    private String title;
+
+    private String images;
+
+    private Integer price;
+
+    private String indexes;
+
+    private String ownSpec;
+
+    private Boolean enable;
+
+    private Date createTime;
+
+    private Date lastUpdateTime;
+}
+
+```
+
+##### StockEntity
+
+```java
+package com.baidu.shop.entity;
+
+import lombok.Data;
+
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * @ClassName StockEntity
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/7
+ * @Version V1.0
+ **/
+@Table(name="tb_stock")
+@Data
+public class StockEntity {
+    @Id
+    private Long skuId;
+
+    private Integer seckillStock;
+
+    private Integer seckillTotal;
+
+    private Integer stock;
+}
+
+```
+
+#### 创建跟新建三个实体类匹配的DTO
+
+##### SpuDetailDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.group.MingruiOperation;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName SpuDetailDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/7
+ * @Version V1.0
+ **/
+@ApiModel(value="spu大字段数据传输类")
+@Data
+public class SpuDetailDTO {
+    @ApiModelProperty(value="spu主键",example = "1")
+    @NotNull(message = "主键不能为空", groups = {MingruiOperation.Update.class})
+    private Integer spuId;
+    @ApiModelProperty(value="商品描述信息")
+    private String description;
+    @ApiModelProperty(value="通用规格参数数据")
+    private String genericSpec;
+    @ApiModelProperty(value="特有规格参数及可选值信息 Json格式")
+    private String specialSpec;
+    @ApiModelProperty(value="包装清单")
+    private String packingList;
+    @ApiModelProperty(value="售后服务")
+    private String afterService;
+}
+
+```
+
+##### SkuDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.base.BaseDTO;
+import com.baidu.shop.group.MingruiOperation;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @ClassName SpuDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/5
+ * @Version V1.0
+ **/
+@ApiModel(value="spu数据传输DTO")
+@Data
+public class SpuDTO extends BaseDTO {
+    @ApiModelProperty(value = "主键", example = "1")
+    @NotNull(message = "主键不能为空", groups = {MingruiOperation.Update.class})
+    private Integer id;
+
+    @ApiModelProperty(value = "标题")
+    @NotEmpty(message = "标题不能为空", groups = {MingruiOperation.Add.class})
+    private String title;
+
+    @ApiModelProperty(value = "子标题")
+    private String subTitle;
+
+    @ApiModelProperty(value = "1级类目id", example = "1")
+    @NotNull(message = "1级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid1;
+
+    @ApiModelProperty(value = "2级类目id", example = "1")
+    @NotNull(message = "2级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid2;
+
+    @ApiModelProperty(value = "3级类目id", example = "1")
+    @NotNull(message = "3级类目id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer cid3;
+
+    @ApiModelProperty(value = "商品所属品牌id", example = "1")
+    @NotNull(message = "商品所属品牌id不能为空",groups = {MingruiOperation.Add.class})
+    private Integer brandId;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "是否上架，0下架，1上架", example = "1")
+    private Integer saleable;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "是否有效，0已删除，1有效", example = "1")
+    private Integer valid;
+
+    //不需要验证,新增时直接设置默认值
+    @ApiModelProperty(value = "添加时间")
+    private Date createTime;
+
+    //不需要验证,新增时直接设置默认值,修改时使用java代码赋值
+    @ApiModelProperty(value = "最后修改时间")
+    private Date lastUpdateTime;
+
+    private String categoryName;
+
+    private String brandName;
+
+    @ApiModelProperty(value = "大字段数据")
+    private SpuDetailDTO spuDetail;
+
+    @ApiModelProperty(value = "sku属性数据集合")
+    private List<SkuDTO> skus;
+}
+
+```
+
+##### StockDTO
+
+```java
+package com.baidu.shop.dto;
+
+import com.baidu.shop.group.MingruiOperation;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+import javax.validation.constraints.NotNull;
+
+/**
+ * @ClassName StockDTO
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/7
+ * @Version V1.0
+ **/
+@ApiModel(value="库存数据传输类")
+@Data
+public class StockDTO {
+    @ApiModelProperty(value = "sku主键", example = "1")
+    @NotNull(message = "主键不能为空",groups = {MingruiOperation.Update.class})
+    private Long skuId;
+    @ApiModelProperty(value = "可秒杀库存", example = "1")
+    private Integer seckillStock;
+    @ApiModelProperty(value = "秒杀总数量", example = "1")
+    private Integer seckillTotal;
+    @ApiModelProperty(value = "库存数量", example = "1")
+    private Integer stock;
+}
+
+```
+
+#### 在spuDTO中添加字段
+
+```java
+@ApiModelProperty(value = "大字段数据")
+    private SpuDetailDTO spuDetail;
+
+    @ApiModelProperty(value = "sku属性数据集合")
+    private List<SkuDTO> skus;
+```
+
+#### 在goodsService中添加新增方法
+
+```java
+@ApiOperation(value = "商新新增")
+    @PostMapping(value = "goods/save")
+    Result<JSONObject> saveGoods(@Validated({MingruiOperation.Add.class}) @RequestBody SpuDTO spuDTO);
+```
+
+#### 在mapper包下新建三个mapper接口
+
+#####  SpuDetailMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.SpuDetailEntity;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface SpuDetailMapper extends Mapper<SpuDetailEntity> {
+}
+
+```
+
+##### SkuMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.dto.SkuDTO;
+import com.baidu.shop.entity.SkuEntity;
+import org.apache.ibatis.annotations.Select;
+import tk.mybatis.mapper.additional.idlist.DeleteByIdListMapper;
+import tk.mybatis.mapper.common.Mapper;
+import tk.mybatis.mapper.common.special.InsertListMapper;
+
+import java.util.List;
+
+public interface SkuMapper extends Mapper<SkuEntity> , InsertListMapper<SkuEntity>, DeleteByIdListMapper<SkuEntity,Long> {
+    @Select(value="select k.*,stock from tb_sku k, tb_stock t where k.id=t.sku_id and k.spu_id =#{spuId}")
+    List<SkuDTO> selectSkuAndStockSpuId(Integer spuId);
+}
+
+```
+
+##### StockMapper
+
+```java
+package com.baidu.shop.mapper;
+
+import com.baidu.shop.entity.StockEntity;
+import tk.mybatis.mapper.additional.idlist.DeleteByIdListMapper;
+import tk.mybatis.mapper.common.Mapper;
+
+public interface StockMapper extends Mapper<StockEntity>, DeleteByIdListMapper<StockEntity,Long> {
+}
+
+```
+
+#### 在GoodsServiceImpl中重新GoodsService接口的新增方法
+
+```java
+package com.baidu.shop.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baidu.shop.base.BaseApiService;
+import com.baidu.shop.base.Result;
+import com.baidu.shop.dto.SkuDTO;
+import com.baidu.shop.dto.SpuDTO;
+import com.baidu.shop.dto.SpuDetailDTO;
+import com.baidu.shop.entity.*;
+import com.baidu.shop.mapper.*;
+import com.baidu.shop.service.GoodsService;
+import com.baidu.shop.status.HTTPStatus;
+import com.baidu.shop.utils.BaiduBeanUtil;
+import com.baidu.shop.utils.ObjectUtil;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import io.swagger.models.auth.In;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RestController;
+import tk.mybatis.mapper.entity.Example;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * @ClassName SpuServiceImpl
+ * @Description: TODO
+ * @Author lss
+ * @Date 2021/1/5
+ * @Version V1.0
+ **/
+@RestController
+@Slf4j
+public class SpuServiceImpl extends BaseApiService implements GoodsService {
+    @Resource
+    private SpuMapper spuMapper;
+    @Resource
+    private BrandMapper brandMapper;
+    @Resource
+    private CategoryMapper categoryMapper;
+
+    @Resource
+    private SpuDetailMapper spuDetailMapper;
+    @Resource
+    private SkuMapper skuMapper;
+    @Resource
+    private StockMapper stockMapper;
+
+    @Transactional
+    @Override
+    public Result<JSONObject> saveGoods(SpuDTO spuDTO) {
+        final Date date  = new Date();
+        //新增spu
+        SpuEntity spuEntity = BaiduBeanUtil.copyProperties(spuDTO, SpuEntity.class);
+        spuEntity.setSaleable(1);
+        spuEntity.setValid(1);
+        spuEntity.setCreateTime(date);
+        spuEntity.setLastUpdateTime(date);
+        spuMapper.insertSelective(spuEntity);
+        //新增spuDetail
+        SpuDetailDTO spuDetail = spuDTO.getSpuDetail();
+        SpuDetailEntity spuDetailEntity = BaiduBeanUtil.copyProperties(spuDetail, SpuDetailEntity.class);
+        spuDetailEntity.setSpuId(spuEntity.getId());
+        spuDetailMapper.insertSelective(spuDetailEntity);
+
+        //新增sku
+        this.saveSkusAndStock(spuDTO,spuEntity.getId(),date);
+
+        return this.setResultSuccess();
+    }
+
+
+    //新增和修改代码中的 新增sku和stock数据代码重复 提出封装
+    private  void saveSkusAndStock(SpuDTO spuDTO,Integer spuId,Date date){
+        List<SkuDTO> skus = spuDTO.getSkus();
+        skus.stream().forEach(skuDTO -> {
+            SkuEntity skuEntity = BaiduBeanUtil.copyProperties(skuDTO, SkuEntity.class);
+            skuEntity.setSpuId(spuId);
+            skuEntity.setCreateTime(date);
+            skuEntity.setLastUpdateTime(date);
+            skuMapper.insertSelective(skuEntity);
+
+            //新增stock
+
+            StockEntity stockEntity = new StockEntity();
+            stockEntity.setSkuId(skuEntity.getId());
+            stockEntity.setStock(skuDTO.getStock());
+            stockMapper.insertSelective(stockEntity);
+        });
+    }
+
+}
+
+```
+
+## 修改
+
+### 数据回显 前台
+
+#### Goods.vue
+
+```vue
+editItem(item) {
+        //保证isedit状态为true;
+        this.isEdit = true;
+        this.show = true;
+        // this.selectedGoods = item;
+        // const names = item.categoryName.split("/");
+        // this.selectedGoods.categories = [
+        //   {id: item.cid1, name: names[0]},
+        //   {id: item.cid2, name: names[1]},
+        //   {id: item.cid3, name: names[2]}
+        // ];
+        // 查询商品详情
+        //把所有操作都用obj来操作,最后将obj赋值给selectedGoods,这样就相当于监控oldGoods纸改变过一次
+        let obj = item;
+        this.$http.get("goods/getSpuDetailByIdSpu",{
+          params:{
+            spuId: item.id
+          }
+        })
+          .then(resp => {
+            // this.selectedGoods.spuDetail = resp.data.data;
+            // this.selectedGoods.spuDetail.specTemplate = JSON.parse(resp.data.data.specialSpec);特有参数数据
+            // this.selectedGoods.spuDetail.specifications = JSON.parse(resp.data.data.genericSpec);通用数据
+
+            obj.categories = [];//为解决监控到的值为undefined
+            obj.spuDetail=resp.data.data;//商品详情
+            obj.spuDetail.specTemplate = resp.data.data.specialSpec;//特有参数数据
+            obj.spuDetail.specifications = resp.data.data.genericSpec;//通用数据
+            //通过spuId查询skus
+            this.$http.get("goods/getSkuBySpuId",{
+              params:{
+                spuId: item.id
+              }
+            })
+            .then((resp)=>{
+                obj.skus = resp.data.data
+                //将obj赋值给oldGoods
+                this.selectedGoods = obj;
+                
+            })
+            .catch((error) => console.log(error))
+
+          })
+        
+      },
+```
+
+#### GoodsForm.vue
+
+```vue
+watch: {
+    oldGoods: {
+      deep: true,
+      handler(val) {
+        if (!this.isEdit) {
+          Object.assign(this.goods, {
+            categories: null, // 商品分类信息
+            brandId: 0, // 品牌id信息
+            title: "", // 标题
+            subTitle: "", // 子标题
+            spuDetail: {
+              packingList: "", // 包装列表
+              afterService: "", // 售后服务
+              description: "" // 商品描述
+            }
+          });
+          this.specs = [];
+          this.specialSpecs = [];
+        } else {
+          this.goods = Object.deepCopy(val);
+
+          // 先得到分类名称
+          const names = val.categoryName.split("/");
+          // 组织商品分类数据
+
+          //setTimeout 延时器   延时器的意义是在做回显的时候必须先要获得全部数据才能回显,所有将回显数据延迟,先执行获得全部数据方法
+          setTimeout(()=>{
+            this.goods.categories = [
+            { id: val.cid1, name: names[0] },
+            { id: val.cid2, name: names[1] },
+            { id: val.cid3, name: names[2] }
+          ];
+          },25)
+```
+
+#### 在GoodsService接口中添加查询方法
+
+```java
+ @ApiOperation(value = "获取spu信息")
+    @GetMapping(value = "goods/getSpuDetailByIdSpu")
+    Result<SpuDetailDTO> getSpuDetailByIdSpu(Integer spuId);
+
+    @ApiOperation(value = "获取sku信息")
+    @GetMapping(value = "goods/getSkuBySpuId")
+    Result<List<SkuDTO>> getSkuBySpuId(Integer spuId);
+```
+
+#### 在GoodsServiceImpl中重写GoodsService接口的查询方法
+
+```java
+@Override
+    public Result<SpuDetailDTO> getSpuDetailByIdSpu(Integer spuId) {
+        SpuDetailEntity spuDetailEntity = spuDetailMapper.selectByPrimaryKey(spuId);
+        return setResultSuccess(spuDetailEntity);
+    }
+
+    @Override
+    public Result<List<SkuDTO>> getSkuBySpuId(Integer spuId) {
+        List<SkuDTO> list = skuMapper.selectSkuAndStockSpuId(spuId);
+        return setResultSuccess(list);
+    }
+```
+
+#### 在GoodsService接口中添加修改方法
+
+```java
+@ApiOperation(value = "商品修改")
+    @PutMapping(value = "goods/save")
+    Result<JSONObject> editGoods(@Validated({MingruiOperation.Update.class}) @RequestBody SpuDTO spuDTO);
+```
+
+#### 在GoodsServiceImpl中重写GoodsService接口的修改方法
+
+```java
+@Transactional
+    @Override
+    public Result<JSONObject> editGoods(SpuDTO spuDTO) {
+        final Date date = new Date();
+        //修改spu属性
+        SpuEntity spuEntity = BaiduBeanUtil.copyProperties(spuDTO, SpuEntity.class);
+        spuEntity.setLastUpdateTime(date);
+        spuMapper.updateByPrimaryKeySelective(spuEntity);
+
+        //修改spuDetail
+        spuDetailMapper.updateByPrimaryKeySelective(BaiduBeanUtil.copyProperties(spuDTO.getSpuDetail(),SpuDetailEntity.class));
+        //修改sku 需要先通过spuId删除sku 然后新增数据\
+//        Example example = new Example(SkuEntity.class);
+//        example.createCriteria().andEqualTo("spuId",spuDTO.getId());
+//        List<SkuEntity> skuEntities = skuMapper.selectByExample(example);
+//        List<Long> skuIdArr = skuEntities.stream().map(sku -> sku.getId()).collect(Collectors.toList());
+//        skuMapper.deleteByIdList(skuIdArr);
+//        stockMapper.deleteByIdList(skuIdArr);
+        this.deleteSkusAndStock(spuEntity.getId());
+        //新增sku和stock数据  //和新增的代码重复 在新增的代码里封装 直接调用
+        this.saveSkusAndStock(spuDTO,spuEntity.getId(),date);
+
+        return setResultSuccess();
+    }
+    /删除skus和stock代码重复  提出来
+    private void deleteSkusAndStock(Integer spuId){
+        Example example = new Example(SkuEntity.class);
+        example.createCriteria().andEqualTo("spuId",spuId);
+        List<SkuEntity> skuEntities = skuMapper.selectByExample(example);
+        //得到skuId集合
+        List<Long> skuIdArr = skuEntities.stream().map(sku -> sku.getId()).collect(Collectors.toList());
+        skuMapper.deleteByIdList(skuIdArr);//通过spuId集合删除sku信息
+        stockMapper.deleteByIdList(skuIdArr);//通过spuId集合删除stock信息
+    }
+```
+
+## 删除
+
+### Goods.vue
+
+```vue
+deleteItem(id) {
+        this.$message.confirm('此操作将永久删除该商品, 是否继续?')
+          .then(() => {
+            // 发起删除请求
+            this.$http.delete("/goods/delete?spuId=" + id)
+              .then(() => {
+                // 删除成功，重新加载数据
+                this.getDataFromApi();
+                this.$message.info('删除成功!');
+              })
+          })
+          .catch(() => {
+            this.$message.info('已取消删除');
+          });
+
+      },
+```
+
+#### 在GoodsService接口中添加修改方法
+
+```java
+@ApiOperation(value = "删除商品")
+    @DeleteMapping(value = "goods/delete")
+    Result<JSONObject> deleteGoods(Integer spuId);
+```
+
+#### 在GoodsServiceImpl中重写GoodsService接口的删除方法
+
+```java
+@Transactional
+    @Override
+    public Result<JSONObject> deleteGoods(Integer spuId) {
+        //通过spuId删除spu
+        spuMapper.deleteByPrimaryKey(spuId);
+        //删除spuDetail
+        spuDetailMapper.deleteByPrimaryKey(spuId);
+        //删除sku和stock
+//        Example example = new Example(SkuEntity.class);
+//        example.createCriteria().andEqualTo("spuId",spuId);
+//        List<SkuEntity> skuEntities = skuMapper.selectByExample(example);
+//        //得到skuId集合
+//        List<Long> skuIdArr = skuEntities.stream().map(sku -> sku.getId()).collect(Collectors.toList());
+//        skuMapper.deleteByIdList(skuIdArr);//通过spuId集合删除sku信息
+//        stockMapper.deleteByIdList(skuIdArr);//通过spuId集合删除stock信息
+        this.deleteSkusAndStock(spuId);
+        return setResultSuccess();
+    }
+```
+
+## 商品上下架功能
+
+#### Goods.vue
+
+```vue
+<v-btn icon small v-if="props.item.saleable" @click="down(props.item)">下架</v-btn>
+          <v-btn icon v-else @click="down(props.item)">上架</v-btn>
+```
+
+```vue
+methods: {
+      down(spuArr){
+        this.$http({
+        method: "put",
+        url: "/goods/downOrUp",
+        data: spuArr
+      })
+        .then((resp) => {
+          this.getDataFromApi();
+          // 提示成功
+          this.$message.success(resp.data.message);
+        })
+        .catch(() => {
+          this.$message.error("失败");
+        });
+```
+
+#### 在GoodsService接口中添加上下架方法
+
+```java
+ @ApiOperation(value = "商品上下架")
+    @PutMapping(value = "goods/downOrUp")
+    Result<JSONObject> downOrUp(@RequestBody SpuDTO spuDTO);
+```
+
+#### 在GoodsServiceImpl中重写GoodsService接口的上下架方法
+
+```java
+@Override
+    public Result<JSONObject> downOrUp(SpuDTO spuDTO) {
+        SpuEntity spuEntity = BaiduBeanUtil.copyProperties(spuDTO, SpuEntity.class);
+        if(ObjectUtil.isNotNull(spuEntity.getSaleable()) && spuEntity.getSaleable()<2){
+            if(spuEntity.getSaleable()==1){
+                spuEntity.setSaleable(0);
+                spuMapper.updateByPrimaryKeySelective(spuEntity);
+                return this.setResultSuccess("下架成功");
+            }
+            if(spuEntity.getSaleable()==0){
+                spuEntity.setSaleable(1);
+                spuMapper.updateByPrimaryKeySelective(spuEntity);
+                return this.setResultSuccess("上架成功");
+            }
+        }
+        return setResultError("操作失败");
+    }
+```
+
